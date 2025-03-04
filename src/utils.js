@@ -70,6 +70,15 @@ exports.httpGet = (url, time_out = 30 * 1000, retry = 3) => {
     })
 }
 
+/**
+ * parse url to document
+ */
+exports.parseHtml = (url = '') => {
+    return exports.httpGet(url).then((content) => {
+        const { JSDOM } = require('jsdom')
+        return new JSDOM(content).window.document
+    })
+}
 
 class Translator {
 

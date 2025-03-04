@@ -3,13 +3,11 @@
  * generate typescript interfaces from java docs
  */
 
-
-const jsdom = require('jsdom');
 const path = require('path');
 const fs = require('fs');
 
 const { config } = require('../config');
-const { createTopBanner, createPackageBanner, httpGet, Translator } = require('./utils');
+const { createTopBanner, createPackageBanner, Translator, parseHtml } = require('./utils');
 
 const java_defaults_modifiers = ['public', 'protected', 'private', 'static', 'final', 'abstract', 'synchronized', 'volatile', 'transient', 'native', 'strictfp', 'default']
 const param_name_regexp = /^[0-9a-zA-Z\._]+/
@@ -31,10 +29,7 @@ class Generator {
 
         const { doc_index_url, options } = this
 
-        const content = await httpGet(doc_index_url);
-
-        const dom = new jsdom.JSDOM(content);
-        const document = dom.window.document;
+        const document = await parseHtml(doc_index_url)
 
         const packages = this.getAllPackages(doc_index_url, document)
         if (packages.length === 0) {
@@ -68,9 +63,7 @@ class Generator {
                 // @ts-ignore
                 const results = await Promise.all(types.map(async (type_url) => {
                     try {
-                        const content = await httpGet(type_url);
-                        const dom = new jsdom.JSDOM(content);
-                        const document = dom.window.document;
+                        const document = await parseHtml(type_url)
                         let template_str = ''
                         const method_summary = document.querySelector('#method-summary');
                         if (method_summary) {
@@ -234,7 +227,7 @@ class Generator {
         return fields.map((field, i) => {
             const desc = descriptions[i].split('\n').join('. ')
             const details = this.getFieldDetails((types[i].textContent || ''))
-            if (filter(details) === false) return '' 
+            if (filter(details) === false) return ''
             return `${desc ? `/** ${this.translator.translate(desc)} */\n` : ''} ${field} : ${details.type}`
         })
 
@@ -497,9 +490,7 @@ class Generator {
 
 
 async function getTypesLinks(package_index_url = '') {
-    const content = await httpGet(package_index_url);
-    const dom = new jsdom.JSDOM(content);
-    const document = dom.window.document;
+    const document = await parseHtml(package_index_url)
 
     const root = document.querySelector('#class-summary');
     if (!root) {
