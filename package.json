@@ -1,0 +1,37 @@
+{
+  "name": "javadoc-to-dts",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "node ./index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/enncy/javadoc-to-dts.git"
+  },
+  "keywords": [
+    "javadoc",
+    "dts",
+    "typescript"
+  ],
+  "bin": {
+    "jtd": "./index.js"
+  },
+  "author": "enncy",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/enncy/javadoc-to-dts/issues"
+  },
+  "homepage": "https://github.com/enncy/javadoc-to-dts#readme",
+  "dependencies": {
+    "@types/jsdom": "^21.1.7",
+    "dotenv": "^16.4.7",
+    "jsdom": "^26.0.0",
+    "tencentcloud-sdk-nodejs-tmt": "^4.0.1027"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.8",
+    "typescript": "^5.8.2"
+  }
+}
