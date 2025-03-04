@@ -3,8 +3,10 @@
   "version": "0.0.1",
   "description": "",
   "main": "index.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "node ./index.js"
+    "build": "node ./index.js",
+    "pub": "tsc && npm publish" 
   },
   "repository": {
     "type": "git",
@@ -27,6 +29,7 @@
   "dependencies": {
     "@types/jsdom": "^21.1.7",
     "dotenv": "^16.4.7",
+    "javadoc-to-dts": "^0.0.1",
     "jsdom": "^26.0.0",
     "tencentcloud-sdk-nodejs-tmt": "^4.0.1027"
   },
