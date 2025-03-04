@@ -1,12 +1,12 @@
 {
   "name": "javadoc-to-dts",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "",
   "main": "index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "node ./index.js",
-    "pub": "tsc && npm publish" 
+    "pub": "tsc && npm publish"
   },
   "repository": {
     "type": "git",
