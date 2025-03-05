@@ -4,8 +4,10 @@ const https = require('https');
 const http = require('http');
 const path = require('path');
 const fs = require('fs');
-const { config } = require('../config');
+const { JSDOM } = require('jsdom')
 const { randomUUID } = require('crypto');
+const chalk = require('chalk');
+const ora = require('ora');
 
 
 exports.sleep = (ms = 0) => {
@@ -42,18 +44,21 @@ exports.httpGet = (url, time_out = 30 * 1000, retry = 3) => {
     if (!url) {
         return Promise.reject('url is required')
     }
+    /** @type {any} */
+    let timeout = undefined;
     return Promise.race([
         new Promise((resolve, reject) => {
-            setTimeout(() => reject('timeout'), time_out)
+            timeout = setTimeout(() => reject('timeout'), time_out)
         }),
         new Promise((resolve, reject) => {
             const protocol = url.startsWith('https') ? https : http
             protocol.get(url, (res) => {
                 let data = '';
-                res.on('data', (chunk) => { 
+                res.on('data', (chunk) => {
                     data += chunk;
                 });
                 res.on('end', () => {
+                    timeout && clearTimeout(timeout)
                     resolve(data);
                 });
             }).on('error', (e) => {
@@ -75,74 +80,42 @@ exports.httpGet = (url, time_out = 30 * 1000, retry = 3) => {
  */
 exports.parseHtml = (url = '') => {
     return exports.httpGet(url).then((content) => {
-        const { JSDOM } = require('jsdom')
         return new JSDOM(content).window.document
     })
 }
 
-class Translator {
-
-    constructor(output_path = '', translate_period = 1000) {
-        /** @type {{():void}[]} */
-        this.tasks = []
-        this.output_path = output_path
+class Translator { 
+    constructor(translate_period = 100) {
+        this.marks = Object.create({})
         this.translate_period = translate_period
+        this.spinner = ora('') 
     }
 
-    start() {
-        this.start_translate_task = true
-        this.loop()
+    mark(text = '') {
+        const uid = `[${randomUUID().replace(/-/g, '')}]`
+        this.marks[uid] = text
+        return uid
     }
 
-    stop() { }
-
-    async loop() {
-        if (this.start_translate_task === false) {
-            return
+    async translateAllMarked(content = '', options = { period: 0 }) {
+        const marks = Object.entries(this.marks)
+        this.spinner.start(chalk.blueBright(`translating ${marks.length} marked text...`)) 
+        let i = 0;
+        for (const [uid, text] of Object.entries(this.marks)) { 
+            content = content.replace(uid, await this.translate(text))
+            await exports.sleep(options.period ?? this.translate_period ?? 0)
+            i++;
+            this.spinner && (this.spinner.text = chalk.blueBright(`translating ${i}/${marks.length} marked text...`))
         }
-        try {
-            if (this.tasks.length > 0) {
-                const task = this.tasks.shift()
-                if (task) {
-                    await task()
-                }
-            }
-        } catch (e) {
-            console.error(e)
-        }
-        await exports.sleep(this.translate_period)
-        await this.loop()
-    }
-
-    /**
-     * add a translate task to the queue, and will be executed in order
-     * @param {string} text 
-     * @param callback  callback when translated
-     */
-    addTask(text = '', callback = (id = '', translated = '') => {
-        const content = fs.readFileSync(path.resolve(this.output_path), 'utf-8')
-        fs.writeFileSync(path.resolve(this.output_path), content.replace(new RegExp(id, 'g'), translated))
-    }) {
-        if (text.trim().length === 0) {
-            return ''
-        }
-        const id = `[Translate_${randomUUID()}]`
-        this.tasks.push(async () => {
-            try {
-                const translated = await this.translate(text)
-                callback(id, translated)
-            } catch (e) {
-                console.error(e)
-            }
-        })
-        return id
+        this.spinner.succeed(chalk.greenBright(`translated ${marks.length} marked text`))
+        return content
     }
 
     /**
      *  
      * @returns {string | Promise<string>}
      */
-      translate(text = '') {
+    translate(text = '') {
         return text
     }
 }

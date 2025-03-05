@@ -8,6 +8,13 @@
     "build": "node ./index.js",
     "pub": "tsc && npm publish"
   },
+  "files": [
+    "./dist",
+    "./src",
+    "./index.js",
+    "./readme.md",
+    "./package.json"
+  ],
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/enncy/javadoc-to-dts.git"
@@ -28,9 +35,11 @@
   "homepage": "https://github.com/enncy/javadoc-to-dts#readme",
   "dependencies": {
     "@types/jsdom": "^21.1.7",
+    "chalk": "^4.1.2",
     "dotenv": "^16.4.7",
-    "javadoc-to-dts": "^0.0.1",
+    "javadoc-to-dts": "^0.0.2",
     "jsdom": "^26.0.0",
+    "ora": "^5.4.1",
     "tencentcloud-sdk-nodejs-tmt": "^4.0.1027"
   },
   "devDependencies": {

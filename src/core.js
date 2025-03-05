@@ -5,6 +5,8 @@
 
 const path = require('path');
 const fs = require('fs');
+const chalk = require('chalk');
+const ora = require('ora');
 
 const { config } = require('../config');
 const { createTopBanner, createPackageBanner, Translator, parseHtml } = require('./utils');
@@ -14,88 +16,103 @@ const param_name_regexp = /^[0-9a-zA-Z\._]+/
 
 class Generator {
     /**
-     * generate all typescript definition from java docs page
-     * @param {string} doc_index_url 
+     * generate all typescript definition from java docs page 
      * @param {GenerateOptions} options  
      */
-    constructor(doc_index_url, options) {
-        this.doc_index_url = doc_index_url
+    constructor(options = {}) {
+        /** @type {GenerateOptions} */
         this.options = options
-        this.translator = options.translator || new Translator()
+        /** @type {Translator | undefined} */
+        this.translator = options.translator
+        this.spinner = ora('')
     }
 
-    async start() {
-        this.translator.start()
+    async generatePackages(packages_index_url = '', output_path = '') {
+        const { options } = this
 
-        const { doc_index_url, options } = this
+        console.log(chalk.blueBright(`output path -> ${output_path}`));
 
-        const document = await parseHtml(doc_index_url)
+        this.spinner.start(chalk.blueBright(`getting ${packages_index_url}...`))
+        const document = await parseHtml(packages_index_url)
+        this.spinner.succeed()
 
-        const packages = this.getAllPackages(doc_index_url, document)
+        const packages = this.getAllPackages(packages_index_url, document)
         if (packages.length === 0) {
-            console.error('no packages found !')
+            this.spinner.fail(chalk.red('no packages found!'))
             return
         }
 
-        if (fs.existsSync(path.resolve(options.output_path))) {
-            fs.unlinkSync(path.resolve(options.output_path))
+        console.log(chalk.blueBright('loading packages : ' + packages.length));
+
+        if (fs.existsSync(path.resolve(output_path))) {
+            fs.unlinkSync(path.resolve(output_path))
         } else {
-            fs.mkdirSync(path.dirname(path.resolve(options.output_path)), { recursive: true })
+            fs.mkdirSync(path.dirname(path.resolve(output_path)), { recursive: true })
         }
 
 
-        options.generate_banner && fs.appendFileSync(path.resolve(options.output_path), createTopBanner(doc_index_url));
+        options.generate_banner && fs.appendFileSync(path.resolve(output_path), createTopBanner(packages_index_url));
 
         for (const pack of packages) {
 
             if (options.onPackGenerateStart?.(pack.name, pack.url) === false) {
                 continue
             }
-            console.log(`generating ${pack.name}...`);
+            console.log(chalk.blueBright(`generating package ${pack.name}...`));
 
             try {
-                options.generate_banner && fs.appendFileSync(path.resolve(options.output_path), createPackageBanner(pack.name, pack.url));
+                options.generate_banner && fs.appendFileSync(path.resolve(output_path), createPackageBanner(pack.name, pack.url));
 
                 const types = await getTypesLinks(pack.url);
+
                 /**
-                 * @type {{template: string, type_info: TypeInfo}[]}
+                 * @type {{template: string, type_info: TypeInfo}[]}   
                  */
                 // @ts-ignore
                 const results = await Promise.all(types.map(async (type_url) => {
-                    try {
-                        const document = await parseHtml(type_url)
-                        let template_str = ''
-                        const method_summary = document.querySelector('#method-summary');
-                        if (method_summary) {
-                            template_str = await this.generateInterface(document);
-                        }
-                        const enum_constant_summary = document.querySelector('#enum-constant-summary');
-                        if (enum_constant_summary) {
-                            template_str = await this.generateEnum(document, enum_constant_summary);
-                        }
-                        if (!template_str) {
-                            console.error(`generating type ${type_url} failed`)
-                            return ''
-                        }
-                        const type_info = this.getTypeInfo(document)
-                        console.error(`resolved ${type_url}`)
-                        return { template: template_str, type_info }
-                    } catch (e) {
-                        return e
-                    }
+                    this.spinner.stop()
+                    this.spinner = ora(chalk.blueBright(`resolving ${type_url}...`)).start();
+                    return this.generateType(type_url)
                 }))
 
-                fs.appendFileSync(path.resolve(options.output_path), results.map(r => r.template).join('\n\n'));
 
-                options.onPackGenerateFinish?.(pack.name, pack.url, results.map(r => r.type_info).filter(Boolean))
+                fs.appendFileSync(path.resolve(output_path), results.filter(r => !!r).map(r => r?.template).filter(Boolean).join('\n\n'));
+
+                options.onPackGenerateFinish?.(pack.name, pack.url, results.filter(r => !!r).map(r => r?.type_info))
             } catch (e) {
-                console.error(e);
-                console.error(`generating package ${pack.name} failed: ${String(e)}`);
+                this.spinner.fail(chalk.red(`generating package ${pack.name} failed: ${String(e)}`));
             }
         }
 
-        this.translator.stop()
-        console.log('finished!');
+        if (this.translator) {
+            const translated_content = await this.translator.translateAllMarked(fs.readFileSync(path.resolve(output_path)).toString())
+            fs.writeFileSync(path.resolve(output_path), translated_content)
+        }
+
+        this.spinner.succeed(chalk.green('all packages generated!'))
+    }
+
+    async generateType(type_url = '') {
+        try {
+            const document = await parseHtml(type_url)
+            let template_str = ''
+            const method_summary = document.querySelector('#method-summary');
+            if (method_summary) {
+                template_str = await this.generateInterface(document);
+            }
+            const enum_constant_summary = document.querySelector('#enum-constant-summary');
+            if (enum_constant_summary) {
+                template_str = await this.generateEnum(document, enum_constant_summary);
+            }
+            if (!template_str) {
+                throw new Error(`generating type ${type_url} failed`)
+            }
+            const type_info = this.getTypeInfo(document)
+            this.spinner.succeed(chalk.greenBright(`resolved ${type_url}`))
+            return { template: template_str, type_info }
+        } catch (e) {
+            this.spinner.fail(chalk.redBright(e))
+        }
     }
 
 
@@ -147,7 +164,7 @@ class Generator {
             `interface ${enum_class_name} {`,
             ...names.map((name, i) => {
                 const desc = (descriptions[i].textContent || '').trim()
-                return `${desc ? `/** ${this.translator.translate(desc)} */\n` : ''}${name.textContent || ''} : ${type_name},`
+                return `${desc ? `/** ${this.translator?.mark(desc) || desc} */\n` : ''}${name.textContent || ''} : ${type_name},`
             }),
             '}',
         ]
@@ -228,7 +245,7 @@ class Generator {
             const desc = descriptions[i].split('\n').join('. ')
             const details = this.getFieldDetails((types[i].textContent || ''))
             if (filter(details) === false) return ''
-            return `${desc ? `/** ${this.translator.translate(desc)} */\n` : ''} ${field} : ${details.type}`
+            return `${desc ? `/** ${this.translator?.mark(desc) || desc} */\n` : ''} ${field} : ${details.type}`
         })
 
     }
@@ -254,7 +271,8 @@ class Generator {
             .map((e) => e.textContent || '')
 
 
-        const comments = type_desc ? this.translator.translate(type_desc.split('\n').map(s => `   ${s}`).filter(Boolean).join('\n')) : ''
+        let comments = type_desc ? type_desc.split('\n').map(s => `   ${s}`).filter(Boolean).join('\n') : ''
+        comments = this.translator?.mark(comments) || comments
 
         const static_methods = this.getMethods(document, (details) => {
             return !!details && details.modifiers.includes('static')
@@ -273,8 +291,8 @@ class Generator {
                 const desc = descriptions[i].split('\n').join('. ')
                 const lines = [
                     '/** ',
-                    `   ${this.translator.translate(desc)}`,
-                    ...details.params.map((p) => `   * @param {${p.type}} ${p.name} ${this.translator.translate(p.desc)}`),
+                    `   ${this.translator?.mark(desc) || desc}`,
+                    ...details.params.map((p) => `   * @param {${p.type}} ${p.name} ${this.translator?.mark(p.desc) || p.desc}`),
                     '*/',
                     `new(${details.params.map(p => `${p.name} : ${p.type}`)}) : ${type_name.replace(/<.*>/, '<any>')}`,
                 ]
@@ -320,14 +338,16 @@ class Generator {
                 return function_template
             }
 
+            const method_comment = details.method_comment ? details.method_comment.split('\n').map(s => `   ${s.trim()}`).join('\n') : ''
+
             const lines = [
                 '/** ',
-                details.method_comment ? this.translator.translate(details.method_comment.split('\n').map(s => `   ${s.trim()}`).join('\n')) : '',
+                method_comment ? this.translator?.mark(method_comment) || method_comment : '',
                 ...details.annotations.map((a) => ` * ${a}`),
-                ...details.params.map((p) => ` * @param {${p.type}} ${p.name} ${this.translator.translate(p.desc)}`),
-                details.return_type === 'void' ? '' : ` * @returns {${details.return_type}} ${this.translator.translate(details.return_type_comments.join(', '))}`,
-                ...details.throws_comments.map((a) => ` * @throws ${this.translator.translate(a)}`),
-                details.deprecation_comment ? ` * @deprecated ${this.translator.translate(details.deprecation_comment)}` : '',
+                ...details.params.map((p) => ` * @param {${p.type}} ${p.name} ${this.translator?.mark(p.desc) || p.desc}`),
+                details.return_type === 'void' ? '' : ` * @returns {${details.return_type}} ${this.translator?.mark(details.return_type_comments.join(', ')) || details.return_type_comments.join(', ')}`,
+                ...details.throws_comments.map((a) => ` * @throws ${this.translator?.mark(a) || a}`),
+                details.deprecation_comment ? ` * @deprecated ${this.translator?.mark(details.deprecation_comment) || details.deprecation_comment}` : '',
                 ' */',
                 function_template
             ]

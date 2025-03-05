@@ -14,8 +14,8 @@ const TmtClient = tencentcloud.tmt.v20180321.Client;
     密钥可前往官网控制台 https://console.cloud.tencent.com/cam/capi 进行获取
  */
 class TencentCloudTranslator extends Translator {
-    constructor(config = { secretId: '', secretKey: '', region: '', target: 'zh', source: 'en', projectId: 0 }) {
-        super();
+    constructor(config = { secretId: '', secretKey: '', region: '', target: 'zh', source: 'en', projectId: 0, translate_period: 200 }) {
+        super(config.translate_period);
         this.clientConfig = {
             credential: {
                 secretId: config.secretId,

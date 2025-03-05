@@ -1,5 +1,7 @@
 
 .env
-node_modules
-output 
+node_modules/
+output/
+output-test/
+dist/
 test.js

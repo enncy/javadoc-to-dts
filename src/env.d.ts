@@ -43,8 +43,7 @@ declare global {
         params: Param[],
     }
 
-    interface GenerateOptions {
-        output_path: string,
+    interface GenerateOptions { 
         generate_banner?: boolean,
         translator?: Translator
         onTypeGenerateStart?: (info: TypeInfo ) => boolean,
