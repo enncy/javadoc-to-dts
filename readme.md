@@ -28,9 +28,9 @@ generator.generatePackages(docs_index_url, output_path);
 
 - `Generator` : Generator class, use to generate typescript definitions file from javadoc
 
-- `generator.generatePackages` : generate all packages from docs index url, url should be like `https://docs.oracle.com/en/java/javase/21/docs/api/java.base/module-summary.html`,
+- `generator.generatePackages` : generate all packages from docs index url, url should be like  https://docs.oracle.com/en/java/javase/21/docs/api/java.base/module-summary.html ,
 
-- `generator.generateType` : generate single type from type doc url,  url should be like `https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html`,
+- `generator.generateType` : generate single type from type doc url,  url should be like  https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html ,
 
 ## Config
 
