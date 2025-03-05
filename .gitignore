@@ -4,4 +4,4 @@ node_modules/
 output/
 output-test/
 dist/
-test.js
+tests/ 
