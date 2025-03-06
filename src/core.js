@@ -25,6 +25,8 @@ class Generator {
         /** @type {Translator | undefined} */
         this.translator = options.translator
         this.spinner = ora('')
+        /** @type {string[]} */
+        this.errors = []
     }
 
     async generatePackages(packages_index_url = '', output_path = '') {
@@ -89,6 +91,12 @@ class Generator {
             fs.writeFileSync(path.resolve(output_path), translated_content)
         }
 
+        console.log(chalk.redBright('errors count: ' + this.errors.length));
+        this.errors.forEach((e) => {
+            console.error(chalk.redBright(e))
+        })
+        
+
         this.spinner.succeed(chalk.green('all packages generated!'))
     }
 
@@ -111,6 +119,7 @@ class Generator {
             this.spinner.succeed(chalk.greenBright(`resolved ${type_url}`))
             return { template: template_str, type_info }
         } catch (e) {
+            this.errors.push(String(e))
             this.spinner.fail(chalk.redBright(e))
         }
     }
