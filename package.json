@@ -1,6 +1,6 @@
 {
   "name": "javadoc-to-dts",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "",
   "main": "index.js",
   "types": "./dist/index.d.ts",
