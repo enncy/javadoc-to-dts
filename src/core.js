@@ -91,11 +91,13 @@ class Generator {
             fs.writeFileSync(path.resolve(output_path), translated_content)
         }
 
-        console.log(chalk.redBright('errors count: ' + this.errors.length));
-        this.errors.forEach((e) => {
-            console.error(chalk.redBright(e))
-        })
-        
+        if (this.errors.length > 0) {
+            console.log(chalk.redBright('errors count: ' + this.errors.length));
+            this.errors.forEach((e) => {
+                console.error(chalk.redBright(e))
+            })
+        }
+
 
         this.spinner.succeed(chalk.green('all packages generated!'))
     }
@@ -103,19 +105,21 @@ class Generator {
     async generateType(type_url = '') {
         try {
             const document = await parseHtml(type_url)
+            const type_info = this.getTypeInfo(document)
             let template_str = ''
-            const method_summary = document.querySelector('#method-summary');
-            if (method_summary) {
-                template_str = await this.generateInterface(document);
+
+            if (type_info.modifiers.includes('@interface')) {
+                template_str = this.generateAnnotation(document);
             }
-            const enum_constant_summary = document.querySelector('#enum-constant-summary');
-            if (enum_constant_summary) {
-                template_str = await this.generateEnum(document, enum_constant_summary);
+            else if ((type_info.modifiers.includes('class') || type_info.modifiers.includes('interface'))) {
+                template_str = this.generateInterface(document);
+            }
+            else if (type_info.modifiers.includes('enum')) {
+                template_str = this.generateEnum(document);
             }
             if (!template_str) {
                 throw new Error(`generating type ${type_url} failed`)
             }
-            const type_info = this.getTypeInfo(document)
             this.spinner.succeed(chalk.greenBright(`resolved ${type_url}`))
             return { template: template_str, type_info }
         } catch (e) {
@@ -150,12 +154,14 @@ class Generator {
     }
 
     /**
-     * @param {Document} document
-     * @param {Element} enum_constant_summary_root 
+     * @param {Document} document 
      * @returns 
      */
-    generateEnum(document, enum_constant_summary_root) {
-        const root = enum_constant_summary_root
+    generateEnum(document) {
+        const root = document.querySelector('#enum-constant-summary');
+        if (!root) {
+            return ''
+        }
         const { type_name, type_desc, extends_str } = this.getTypeInfo(document)
 
         const names = Array.from(root.querySelectorAll('.col-first'))
@@ -178,6 +184,28 @@ class Generator {
             '}',
         ]
 
+        return lines.filter(Boolean).join('\n')
+    }
+
+
+    /**
+     * @param {Document} document 
+     * @returns 
+     */
+    generateAnnotation(document) {
+        const type_info = this.getTypeInfo(document)
+        if (this.options.onTypeGenerateStart && this.options.onTypeGenerateStart(type_info) === false) {
+            return ''
+        }
+
+        const lines = [
+            '/** ',
+            type_info.type_desc,
+            ' */',
+            `interface ${type_info.type_name} {`,
+            '// this is an Annotation ',
+            '}'
+        ]
         return lines.filter(Boolean).join('\n')
     }
 
@@ -384,11 +412,13 @@ class Generator {
         const type_name = (document.querySelector('.element-name')?.textContent || '').replace(/\./g, '_');
         const type_desc = document.querySelector('.class-description .block')?.textContent || '';
         let extends_str = document.querySelector('.extends-implements')?.textContent || '';
-        extends_str = extends_str.replace('extends', ' ').replace('implements', ' ')
-        extends_str = resolveGenericTypes(extends_str).replace(/\./g, '_').trim()
-            .replace(/,/g, ' ')
-            .replace(/\s+/g, ',')
-            .split(',').map((t) => getJsType(t)).join(', ')
+        if (extends_str) {
+            extends_str = extends_str.replace('extends', ' ').replace('implements', ' ')
+            extends_str = resolveGenericTypes(extends_str).replace(/\./g, '_').trim()
+                .replace(/,/g, ' ')
+                .replace(/\s+/g, ',')
+                .split(',').map((t) => getJsType(t)).join(', ')
+        }
         const info = {
             type_name: getJsType(type_name),
             type_desc: resolveComment(type_desc),
