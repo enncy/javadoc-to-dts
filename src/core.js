@@ -209,6 +209,8 @@ class Generator {
         ]
 
         const template = '\n' + lines.filter(Boolean).join('\n')
+
+
         if (this.options.onTypeGenerateFinish && this.options.onTypeGenerateFinish(type_info, template) === false) {
             return ''
         }
@@ -258,8 +260,24 @@ class Generator {
     getConstructor(document, type_desc = '', type_name = '') {
         const root = document.querySelector('#constructor-summary');
         const name_without_generic_type = type_name.replace(/<.*>/, '')
+
+        let comments = type_desc ? type_desc.split('\n').map(s => `   ${s}`).filter(Boolean).join('\n') : ''
+        comments = this.translator?.mark(comments) || comments
+
+        const static_methods = this.getMethods(document, (details) => {
+            return !!details && details.modifiers.includes('static')
+        })
+
         if (!root) {
-            return { template: `\n/** */\ninterface ${name_without_generic_type}Constructor {new():${name_without_generic_type}}\n`, comments: '' }
+            const lines = [
+                '/** ',
+                comments,
+                ' */',
+                `interface ${name_without_generic_type}Constructor {`,
+                ...static_methods,
+                '}'
+            ]
+            return { template: lines.filter(Boolean).join('\n'), comments }
         }
 
         const constructors = Array.from(root.querySelectorAll('.col-constructor-name'))
@@ -270,14 +288,6 @@ class Generator {
             .filter(e => e.classList.contains('table-header') === false)
             .map((e) => e.textContent || '')
 
-
-        let comments = type_desc ? type_desc.split('\n').map(s => `   ${s}`).filter(Boolean).join('\n') : ''
-        comments = this.translator?.mark(comments) || comments
-
-        const static_methods = this.getMethods(document, (details) => {
-            return !!details && details.modifiers.includes('static')
-        })
-
         const lines = [
             '/** ',
             comments,
@@ -286,7 +296,6 @@ class Generator {
             ...constructors.map((constructor, i) => {
                 const details = this.getConstructorDetails(document, i);
                 if (!details) return ''
-
 
                 const desc = descriptions[i].split('\n').join('. ')
                 const lines = [
@@ -302,7 +311,6 @@ class Generator {
                 return modifiers.includes('static') === true
             })),
             ...static_methods,
-
             '}',
         ]
 

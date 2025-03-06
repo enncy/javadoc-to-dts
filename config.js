@@ -4,6 +4,7 @@
 
 
 exports.config = {
+    /** @type {string[]} */
     ignores_methods: [],
     types_mapping: [
         'int-number',
