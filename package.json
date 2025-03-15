@@ -14,7 +14,8 @@
     "./index.js",
     "./readme.md",
     "./package.json",
-    "./config.js"
+    "./config.js",
+    "./env.d.ts"
   ],
   "repository": {
     "type": "git",
@@ -38,7 +39,7 @@
     "@types/jsdom": "^21.1.7",
     "chalk": "^4.1.2",
     "dotenv": "^16.4.7",
-    "javadoc-to-dts": "^0.0.6",
+    "javadoc-to-dts": "^0.0.7",
     "jsdom": "^26.0.0",
     "ora": "^5.4.1",
     "tencentcloud-sdk-nodejs-tmt": "^4.0.1027"

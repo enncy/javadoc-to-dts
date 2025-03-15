@@ -1,3 +1,4 @@
+/// <reference path="../env.d.ts" />
 // @ts-check
 /**
  * generate typescript interfaces from java docs
