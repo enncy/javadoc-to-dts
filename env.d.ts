@@ -1,15 +1,15 @@
+export * from './dist/index';
 
-export { };
-import { Translator } from './utils';
-
+export { }
 
 declare global {
-    interface JavaObject {
+
+    export interface JavaObject {
         toString(): string;
         equals(obj: any): boolean;
     }
 
-    interface TypeInfo {
+    export interface TypeInfo {
         type_desc: string,
         type_name: string,
         extends_str: string,
@@ -17,20 +17,20 @@ declare global {
     }
 
 
-    interface FieldDetails {
+    export interface FieldDetails {
         type: string,
         modifiers: string,
         annotations: string[];
     }
 
-    interface Param {
+    export interface Param {
         name: string;
         type: string;
         annotations: string[];
         desc: string;
     }
 
-    interface MethodDetails {
+    export interface MethodDetails {
         modifiers: string,
         method_name: string,
         return_type: string,
@@ -43,25 +43,22 @@ declare global {
         type_parameters: string
     }
 
-    interface ConstructorDetails {
+    export interface ConstructorDetails {
         deprecation_comment: string,
         method_comment: string,
         params: Param[],
     }
 
-    interface GenerateOptions { 
+    export interface GenerateOptions {
         generate_banner?: boolean,
         translator?: Translator
-        onTypeGenerateStart?: (info: TypeInfo ) => boolean,
+        onTypeGenerateStart?: (info: TypeInfo) => boolean,
         onTypeGenerateFinish?: (info: TypeInfo, template: string) => boolean,
         onTypeHandle?: (info: TypeInfo) => void,
-        onFieldHandle?: (info: FieldInfo) => void,
         onPramHandle?: (info: Param) => void,
         onConstructorHandle?: (details: ConstructorDetails) => void,
         onMethodHandle?: (details: MethodDetails) => void,
-        onPackGenerateStart?: (pack_name: string, pack_url: string ) => boolean | void,
-        onPackGenerateFinish?: (pack_name: string, pack_url: string, type_infos: TypeInfo[]) =>   void,
+        onPackGenerateStart?: (pack_name: string, pack_url: string) => boolean | void,
+        onPackGenerateFinish?: (pack_name: string, pack_url: string, type_infos: TypeInfo[]) => void,
     }
 }
-
-

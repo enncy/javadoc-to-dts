@@ -3,7 +3,7 @@
   "version": "0.0.8",
   "description": "",
   "main": "index.js",
-  "types": "./dist/index.d.ts",
+  "types": "./env.d.ts",
   "scripts": {
     "build": "node ./index.js",
     "pub": "tsc && npm version patch && npm publish"
