@@ -9,6 +9,11 @@ declare global {
         equals(obj: any): boolean;
     }
 
+    
+    export interface Java {
+        
+    }
+
     export interface TypeInfo {
         type_desc: string,
         type_name: string,

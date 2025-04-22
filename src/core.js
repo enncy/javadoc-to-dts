@@ -509,7 +509,7 @@ class Generator {
             method_comment: resolveComment(method_comment),
             return_type_comments: (notes['Returns:'] || []).map(resolveComment),
             throws_comments: (notes['Throws:'] || []).map(resolveComment),
-            type_parameters: type_parameters.includes('?') ? '<any>' : type_parameters
+            type_parameters: type_parameters.replace(/\<\s*\?\s*(extends|super)\s*(.+)\s*\>/, '<$2>')
         }
         this.options.onMethodHandle?.(details)
         return details
@@ -626,7 +626,7 @@ function getDetailsNotes(root) {
 function resolveGenericTypes(type = '') {
     if (type.match(/<.*>/)) {
         if (type.includes('?')) {
-            return type.replace(/<.*>/, '<any>')
+            return type.replace(/\<\s*\?\s*(extends|super)\s*(.+)\s*\>/, '<$2>')
         }
         const generic_type_str = type.match(/<(.*)>/)?.[1] || ''
         const types = generic_type_str.split(',').map((t) => t.trim()).map(t => t.split(' ').filter(s => s.startsWith('@') === false).at(-1)?.trim() || '')
