@@ -52,6 +52,7 @@ config.types_mapping = [
 
 ## Translator
 
+> translate type comment to target language comment
 > only support [`TencentCloudTranslator`](https://console.cloud.tencent.com/tmt) now
 
 create `.env` file in root folder
@@ -105,6 +106,7 @@ const generator = new Generator({
   translator: new CustomTranslator(),
 });
 ```
+
 
 ## Use With [`graaljs`](https://github.com/oracle/graaljs)
 
