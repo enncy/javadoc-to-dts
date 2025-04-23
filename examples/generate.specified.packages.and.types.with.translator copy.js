@@ -35,8 +35,6 @@ async function generateSpecifiedPackage(docs_index_url = '', specified_package_n
             return false
         },
         onPackGenerateFinish(pack_name, pack_url, results) {
-            fs.appendFileSync(types_path, `/// <reference types="./${path.basename(types_path.replace(/\.types\.js/, '.d.ts'))}" />\n`)
-
             fs.appendFileSync(types_path, '\n' + results.map(r => {
                 if (r.modifiers.includes('enum')) {
                     const name = r.type_name.replace(/<.*>/g, '')
@@ -53,6 +51,7 @@ async function generateSpecifiedPackage(docs_index_url = '', specified_package_n
     if (fs.existsSync(types_path)) {
         fs.unlinkSync(types_path)
     }
+    fs.appendFileSync(types_path, `/// <reference types="./${path.basename(types_path.replace(/\.types\.js/, '.d.ts'))}" />\n`)
 
     await generator.generatePackages(docs_index_url, output_path)
 }
