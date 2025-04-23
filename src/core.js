@@ -367,8 +367,8 @@ class Generator {
         }
 
         const methods = Array.from(root.querySelectorAll('.col-second'))
-            .map((e) => e.textContent || '')
-            .filter((t) => !config.ignores_methods.some((m) => t.includes(m)));
+            .filter((t) => !config.ignores_methods.some((m) => (t.textContent || '').includes(m)));
+
 
         return methods.map((method, i) => {
             const details = this.getMethodDetails(document, method);
@@ -473,46 +473,64 @@ class Generator {
 
     /** 
      * @param {Document} document 
-     * @param {string} method_str
+     * @param {Element} method 
      * @returns {MethodDetails | undefined}
      */
-    getMethodDetails(document, method_str = '') {
-        const method_name = method_str.split('(')[0];
-        const root = document.querySelector(`#method-detail [id^="${method_name}"]`);
-        if (!root) {
+    getMethodDetails(document, method) {
+        const method_name = method.textContent?.split('(')[0] || '';
+        if (!method_name) {
             return
         }
+        try {
+            let id = method.querySelector('.member-name-link')?.getAttribute('href') || ''
+            id = decodeURIComponent(id)
+            id = id?.replace(/\(/g, '\\(')
+            id = id?.replace(/\)/g, '\\)')
+            id = id?.replace(/\[/g, '\\[')
+            id = id?.replace(/\]/g, '\\]')
+            id = id?.replace(/\./g, '\\.')
+            if (!id) {
+                return
+            }
+            const root = document.querySelector(`section ${id}`);
+            if (!root) {
+                return
+            }
 
-        const method_params_str = (root.querySelector('.member-signature .parameters')?.textContent || '').match(/\(([\s\S]*)\)/)?.[1] || '';
+            const method_params_str = (root.querySelector('.member-signature .parameters')?.textContent || '').match(/\(([\s\S]*)\)/)?.[1] || '';
 
-        const modifiers = root.querySelector('.member-signature .modifiers')?.textContent || '';
-        const type_parameters = root.querySelector('.member-signature .type-parameters')?.textContent || '';
-        const return_type = root.querySelector('.member-signature .return-type')?.textContent || '';
-        const annotations = root.querySelector('.member-signature .annotations')?.textContent || '';
+            const modifiers = root.querySelector('.member-signature .modifiers')?.textContent || '';
+            const type_parameters = root.querySelector('.member-signature .type-parameters')?.textContent || '';
+            const return_type = root.querySelector('.member-signature .return-type')?.textContent || '';
+            const annotations = root.querySelector('.member-signature .annotations')?.textContent || '';
 
-        const deprecation_comment = root.querySelector('.deprecation-block .deprecation-comment')?.textContent || '';
-        const method_comment = root.querySelector('.block')?.textContent || '';
+            const deprecation_comment = root.querySelector('.deprecation-block .deprecation-comment')?.textContent || '';
+            const method_comment = root.querySelector('.block')?.textContent || '';
 
-        const notes = getDetailsNotes(root)
-        const params = this.resolveParams(method_params_str, notes)
+            const notes = getDetailsNotes(root)
+            const params = this.resolveParams(method_params_str, notes)
 
-        let resolved_return_type = return_type
-        resolved_return_type = resolved_return_type.replace(/<.*>/g, (match) => resolveGenericTypes(match))
-        resolved_return_type = resolved_return_type.replace(/\(.*\)/g, (match) => resolveAnnotation(match))
-        const details = {
-            modifiers,
-            method_name,
-            params,
-            return_type: getJsType(resolved_return_type.split(' ').at(-1)),
-            annotations: annotations.split('\n').filter(Boolean),
-            deprecation_comment: resolveComment(deprecation_comment),
-            method_comment: resolveComment(method_comment),
-            return_type_comments: (notes['Returns:'] || []).map(resolveComment),
-            throws_comments: (notes['Throws:'] || []).map(resolveComment),
-            type_parameters: resolveUnknownGenericTypes(type_parameters)
+            let resolved_return_type = return_type
+            resolved_return_type = resolved_return_type.replace(/<.*>/g, (match) => resolveGenericTypes(match))
+            resolved_return_type = resolved_return_type.replace(/\(.*\)/g, (match) => resolveAnnotation(match))
+            const details = {
+                modifiers,
+                method_name,
+                params,
+                return_type: getJsType(resolved_return_type.split(' ').at(-1)),
+                annotations: annotations.split('\n').filter(Boolean),
+                deprecation_comment: resolveComment(deprecation_comment),
+                method_comment: resolveComment(method_comment),
+                return_type_comments: (notes['Returns:'] || []).map(resolveComment),
+                throws_comments: (notes['Throws:'] || []).map(resolveComment),
+                type_parameters: resolveUnknownGenericTypes(type_parameters)
+            }
+            this.options.onMethodHandle?.(details)
+            return details
+        } catch (e) {
+            // 可能是元素不存在
+            return
         }
-        this.options.onMethodHandle?.(details)
-        return details
     }
 
     /**
