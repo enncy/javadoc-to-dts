@@ -176,7 +176,11 @@ class Generator {
             '/** ',
             type_desc ? type_desc.split('\n').map(s => `   ${s}`).filter(Boolean).join('\n') : '',
             ' */',
-            `interface ${type_name}  ${extends_str ? 'extends ' + extends_str : ''} {}`,
+            `interface ${type_name}  ${extends_str ? 'extends ' + extends_str : ''} {`,
+            ...(this.getMethods(document, (details) => {
+                return !!details && details.modifiers.includes('static') === false
+            })),
+            `}`,
             `interface ${enum_class_name} {`,
             ...names.map((name, i) => {
                 const desc = (descriptions[i].textContent || '').trim()
