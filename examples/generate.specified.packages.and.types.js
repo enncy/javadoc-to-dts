@@ -26,13 +26,15 @@ async function generateSpecifiedPackage(docs_index_url = '', specified_package_n
         },
         onPackGenerateFinish(pack_name, pack_url, results) {
             fs.appendFileSync(types_path, '\n' + results.map(r => {
+                const classname = `${pack_name}.${r.type_name.replace(/_/g, '.').split('<')[0]}`
+ 
                 if (r.modifiers.includes('enum')) {
                     const name = r.type_name.replace(/<.*>/g, '')
-                    return `\n/** @type {${name}Enum} */\nexports.${name} = Java.type("${pack_name}.${r.type_name.replace(/_/g, '.').split('<')[0]}")`
+                    return `exports.${name} = /** @type {${name}Enum} */ (${classname})`
                 }
                 else if (r.modifiers.includes('class')) {
                     const name = r.type_name.replace(/<.*>/g, '')
-                    return `\n/** @type {${name}Constructor} */\nexports.${name} = Java.type("${pack_name}.${r.type_name.replace(/_/g, '.').split('<')[0]}")`
+                    return `exports.${name} =  /** @type {${name}Constructor} */ (${classname}  )`
                 }
             }).filter(Boolean).join('\n'));
         }
