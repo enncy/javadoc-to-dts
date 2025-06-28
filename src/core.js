@@ -493,6 +493,8 @@ class Generator {
             id = id?.replace(/\[/g, '\\[')
             id = id?.replace(/\]/g, '\\]')
             id = id?.replace(/\./g, '\\.')
+            id = id?.replace(/\,/g, '\\,')
+
             if (!id) {
                 return
             }
