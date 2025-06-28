@@ -670,10 +670,11 @@ function resolveAnnotation(annotation = '') {
 function resolveUnknownGenericTypes(type = '') {
     const regexp = /\?\s*(extends|super)\s*(.+)\s*(>|,)/
     while (regexp.test(type)) {
-        type = type.replace(/\?\s*(extends|super)\s*(.+)\s*(>|,)/, '$2$3')
+        type = type.replace(/\<.*?\?\s*(extends|super)\s*(.+)\s*(>|,)/, '<$2>')
     }
     return type
 }
 
 
 exports.Generator = Generator
+exports.config = config
