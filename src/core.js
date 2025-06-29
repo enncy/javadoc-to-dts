@@ -548,6 +548,8 @@ class Generator {
      */
     resolveParams(method_params_str = '', notes = {}) {
         let resolved_method_params_str = method_params_str
+
+
         resolved_method_params_str = resolveGenericTypes(resolved_method_params_str)
         resolved_method_params_str = resolved_method_params_str.replace(/\(.*\)/g, (match) => resolveAnnotation(match))
 
@@ -650,13 +652,13 @@ function getDetailsNotes(root) {
 function resolveGenericTypes(type = '') {
     if (type.match(/<.*>/)) {
         if (type.includes('?')) {
-            return resolveUnknownGenericTypes(type)
+            return resolveUnknownGenericTypes(type).replace(/\n/g, '')
         }
         const generic_type_str = type.match(/<(.*)>/)?.[1] || ''
         const types = generic_type_str.split(',').map((t) => t.trim()).map(t => t.split(' ').filter(s => s.startsWith('@') === false).at(-1)?.trim() || '')
-        return type.replace(/<.*>/, `<${types.map((t) => getJsType(t)).join(',')}>`)
+        return type.replace(/<.*>/, `<${types.map((t) => getJsType(t)).join(',')}>`).replace(/\n/g, '')
     }
-    return type
+    return type.replace(/\n/g, '')
 }
 
 function resolveAnnotation(annotation = '') {
@@ -667,12 +669,8 @@ function resolveAnnotation(annotation = '') {
 }
 
 
-function resolveUnknownGenericTypes(type = '') {
-    const regexp = /(.)\<.*?\?\s*(extends|super)\s*(.+?)\s*(>|,)/
-    while (regexp.test(type)) {
-        type = type.replace(regexp, '$1<$3>')
-    }
-    return type
+function resolveUnknownGenericTypes(type = '') { 
+    return type.replace(/\?\s*(extends|super)\s*([a-zA-Z]+)([^A-Z])/g, '$2$3').replace(/\n/g, '')
 }
 
 
