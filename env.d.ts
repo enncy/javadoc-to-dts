@@ -17,6 +17,7 @@ declare global {
     export interface TypeInfo {
         type_desc: string,
         type_name: string,
+        raw_type_name: string,
         extends_str: string,
         modifiers: string,
     }

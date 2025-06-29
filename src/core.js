@@ -426,6 +426,7 @@ class Generator {
         }
         const info = {
             type_name: getJsType(type_name),
+            raw_type_name: type_name,
             type_desc: resolveComment(type_desc),
             extends_str,
             modifiers
@@ -517,7 +518,7 @@ class Generator {
             const params = this.resolveParams(method_params_str, notes)
 
             let resolved_return_type = return_type
-            resolved_return_type = resolved_return_type.replace(/<.*>/g, (match) => resolveGenericTypes(match))
+            resolved_return_type = resolveGenericTypes(resolved_return_type)
             resolved_return_type = resolved_return_type.replace(/\(.*\)/g, (match) => resolveAnnotation(match))
             const details = {
                 modifiers,
@@ -546,9 +547,8 @@ class Generator {
      * @returns {Param[]}
      */
     resolveParams(method_params_str = '', notes = {}) {
-
         let resolved_method_params_str = method_params_str
-        resolved_method_params_str = resolved_method_params_str.replace(/<.*>/g, (match) => resolveGenericTypes(match))
+        resolved_method_params_str = resolveGenericTypes(resolved_method_params_str)
         resolved_method_params_str = resolved_method_params_str.replace(/\(.*\)/g, (match) => resolveAnnotation(match))
 
         const params = resolved_method_params_str.replace(/\s+/g, ' ').split(', ').filter(Boolean).map((param_str) => {
@@ -668,9 +668,9 @@ function resolveAnnotation(annotation = '') {
 
 
 function resolveUnknownGenericTypes(type = '') {
-    const regexp = /\?\s*(extends|super)\s*(.+)\s*(>|,)/
+    const regexp = /(.)\<.*?\?\s*(extends|super)\s*(.+?)\s*(>|,)/
     while (regexp.test(type)) {
-        type = type.replace(/\<.*?\?\s*(extends|super)\s*(.+)\s*(>|,)/, '<$2>')
+        type = type.replace(regexp, '$1<$3>')
     }
     return type
 }
